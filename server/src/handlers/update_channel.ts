@@ -1,16 +1,43 @@
+import { db } from '../db';
+import { channelsTable } from '../db/schema';
 import { type UpdateChannelInput, type Channel } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const updateChannel = async (input: UpdateChannelInput): Promise<Channel> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to update channel information such as name,
-    // description, and privacy settings. Should verify user has admin permissions.
-    return Promise.resolve({
-        id: input.id,
-        name: input.name || 'placeholder-channel',
-        description: input.description || null,
-        is_private: input.is_private || false,
-        created_by: 1, // Placeholder creator ID
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Channel);
+  try {
+    // Build update object with only provided fields
+    const updateData: any = {};
+    
+    if (input.name !== undefined) {
+      updateData.name = input.name;
+    }
+    
+    if (input.description !== undefined) {
+      updateData.description = input.description;
+    }
+    
+    if (input.is_private !== undefined) {
+      updateData.is_private = input.is_private;
+    }
+    
+    // Always update the updated_at timestamp
+    updateData.updated_at = new Date();
+
+    // Update the channel and return the updated record
+    const result = await db
+      .update(channelsTable)
+      .set(updateData)
+      .where(eq(channelsTable.id, input.id))
+      .returning()
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error(`Channel with id ${input.id} not found`);
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Channel update failed:', error);
+    throw error;
+  }
 };

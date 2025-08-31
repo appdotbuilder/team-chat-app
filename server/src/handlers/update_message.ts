@@ -1,19 +1,28 @@
+import { db } from '../db';
+import { messagesTable } from '../db/schema';
 import { type UpdateMessageInput, type Message } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const updateMessage = async (input: UpdateMessageInput): Promise<Message> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to update/edit an existing message.
-    // Should verify the user is the original sender and set edited_at timestamp.
-    return Promise.resolve({
-        id: input.id,
+  try {
+    // Update the message with the new content and set edited_at timestamp
+    const result = await db.update(messagesTable)
+      .set({
         content: input.content,
-        message_type: 'text', // Placeholder type
-        sender_id: 1, // Placeholder sender
-        channel_id: null, // Placeholder
-        direct_message_recipient_id: null, // Placeholder
-        reply_to_message_id: null,
-        edited_at: new Date(), // Mark as edited
-        created_at: new Date(),
+        edited_at: new Date(),
         updated_at: new Date()
-    } as Message);
+      })
+      .where(eq(messagesTable.id, input.id))
+      .returning()
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error(`Message with id ${input.id} not found`);
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Message update failed:', error);
+    throw error;
+  }
 };
